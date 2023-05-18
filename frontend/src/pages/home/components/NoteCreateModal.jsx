@@ -3,8 +3,9 @@ import { Dialog, DialogActions, DialogContent, DialogTitle, Button, TextField } 
 import Cookies from 'js-cookie';
 import { AxiosError } from 'axios';
 import GlobalContext from '../../../share/Context/GlobalContext';
+import Axios from '../../../share/AxiosInstance';
 
-const NoteCreateModal = ({ open = false, handleClose = () => {}, setNotes = () => {} }) => {
+const NoteCreateModal = ({ open = false, handleClose = () => { }, setNotes = () => { } }) => {
   const [newNote, setNewNote] = useState({
     title: '',
     description: '',
@@ -12,11 +13,49 @@ const NoteCreateModal = ({ open = false, handleClose = () => {}, setNotes = () =
   const [error, setError] = useState({});
   const { setStatus } = useContext(GlobalContext);
 
+  const validateForm = () => {
+    let isValid = true;
+    if (!newNote.title) error.title = 'title is required';
+    if (!newNote.description) error.description = 'description is required';
+
+    setError(error);
+
+    if (Object.keys(error).length) return false;
+    return true;
+  }
+
   const submit = async () => {
     // TODO: Implement create note
     // 1. validate form
-    // 2. call API to create note
-    // 3. if successful, add new note to state and close modal
+    if (!validateForm()) return;
+    try {
+      // 2. call API to create note
+      const userToken = Cookies.get('UserToken');
+      const response = await Axios.post('/note', newNote,
+      {headers:{Authorization:`Bearer ${userToken}`}});
+      // 3. if successful, add new note to state and close modal
+      if (response.data.success) {
+        setNotes((prev)=>{prev,response.data.data});
+        setStatus({
+          msg: response.data.msg,
+          severity: 'success',
+        });
+        resetAndClose();
+      }
+    } catch (error) {
+      if(error instanceof AxiosError && error.response)
+      {
+        return setStatus({
+          msg: error.response.data.error,
+          severity: 'error',
+        })
+      }
+
+      return setStatus({
+        msg: error.message,
+        severity: 'error',
+      })
+    }
     // 4. if create note failed, check if error is from calling API or not
   };
 

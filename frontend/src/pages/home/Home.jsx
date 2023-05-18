@@ -46,7 +46,7 @@ const Home = () => {
   };
   const handleNoteCreateClose = () => {
     setOpenCreate(false);
-  };image.png
+  };
 
   // Note Edit Modal
   const handleNoteEditOpen = () => {
@@ -78,8 +78,36 @@ const Home = () => {
   // Delete Note
   const handleDelete = async () => {
     // TODO: Implement delete note
-    // 1. call API to delete note
-    // 2. if successful, set status and remove note from state
+    try {
+      // 1. call API to delete note
+      const userToken = Cookies.get('UserToken');
+      const response = await Axios.delete(`note/${targetNote.id}`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      })
+      // 2. if successful, set status and remove note from state
+      if (response.data.success) {
+        setStatus({
+          msg: 'Delete note successfully',
+          severity: 'success',
+        });
+        setNotes(notes.filter((n) => n.id !== targetNote.id));
+        handleNoteDetailClose();
+      }
+    }
+    catch (error) {
+      if(error instanceof AxiosError && error.response)
+      {
+        return setStatus({
+          msg: error.response.data.error,
+          severity: 'error',
+        })
+      }
+
+      return setStatus({
+        msg: error.message,
+        severity: 'error',
+      })
+    }
     // 3. if delete note failed, check if error is from calling API or not
   };
 

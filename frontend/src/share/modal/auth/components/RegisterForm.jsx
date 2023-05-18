@@ -1,7 +1,9 @@
 import { Box, Link, TextField, Typography } from '@mui/material';
 import React, { useContext, useState } from 'react';
+import Axios from '../../../AxiosInstance';
+import { AxiosError } from 'axios';
 
-const RegisterForm = ({ setIsLogin = () => {}, setStatus = () => {} }) => {
+const RegisterForm = ({ setIsLogin = () => { }, setStatus = () => { } }) => {
   const [username, setUsername] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [email, setEmail] = useState('');
@@ -11,11 +13,72 @@ const RegisterForm = ({ setIsLogin = () => {}, setStatus = () => {} }) => {
   const [rePassword, setRePassword] = useState('');
   const [rePasswordError, setRePasswordError] = useState('');
 
+  const validateForm = () => {
+    let isValid = true;
+    if (!username) {
+      setUsernameError('Username is required');
+      isValid = false;
+    }
+    if (!email) {
+      setEmailError('Email is required');
+      isValid = false;
+    }
+    if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/g.test(email)) {
+      setEmailError('Email is required');
+      isValid = false;
+    }
+    if (!password) {
+      setPasswordError('Password is required');
+      isValid = false;
+    }
+    if (!rePassword) {
+      setRePasswordError('Confirm password is required');
+    }
+    if (password !== rePassword) {
+      setPassword('');
+      setRePassword('');
+      setPasswordError('Password is not match');
+      isValid = false;
+    }
+    return isValid;
+  }
+
   const handleSubmit = async () => {
     // TODO: Implement login
     // 1. validate form
-    // 2. send request to server
-    // 3. if successful, change modal to login mode
+    if (!validateForm()) return;
+    try {
+      // 2. send request to server
+      const response = await Axios.post('/register', {
+        username,
+        email,
+        password,
+      })
+      // 3. if successful, change modal to login mode
+      if (response.data.success) {
+        setIsLogin(true);
+        setStatus({
+          msg: response.data.msg,
+          sevrity: 'success',
+        });
+      }
+    }
+    catch (e) {
+      setPassword('');
+      setRePassword('');
+
+      if (e instanceof AxiosError && e.response) {
+        return setStatus({
+          msg: e.response.data.error,
+          severity: 'error',
+        });
+      }
+
+      return setStatus({
+        msg: e.message,
+        severity: 'error',
+      })
+    }
     // 4. if fail, show error message alert, and reset password fields
   };
   return (

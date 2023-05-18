@@ -1,18 +1,68 @@
 import { Box, Link, TextField, Typography } from '@mui/material';
 import React, { useState } from 'react';
+import Axios from '../../../AxiosInstance';
+import { AxiosError } from 'axios';
 
-const LoginForm = ({ handleClose = () => {}, setIsLogin = () => {}, setStatus = () => {}, setUser = () => {} }) => {
+const LoginForm = ({ handleClose = () => { }, setIsLogin = () => { }, setStatus = () => { }, setUser = () => { } }) => {
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [usernameOrEmailError, setUsernameOrEmailError] = useState('');
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
+  const validateForm = () => {
+    let isValid = true;
+    if (!usernameOrEmail) {
+      setUsernameOrEmailError('Username or Email is required');
+      isValid = false;
+    }
+    if (!password) {
+      setPasswordError('Password is required');
+      isValid = false;
+    }
+    return isValid;
+  }
+
   const handleSubmit = async () => {
     // TODO: Implement login
     // 1. validate form
-    // 2. call API to login
-    // 3. if success, close modal, and update user information.
-    // 4. if fail, show error message, and reset text fields value
+    if (!validateForm()) return;
+    try {
+      // 2. call API to login
+      const response = await Axios.post('/login', {
+        usernameOrEmail,
+        password,
+      });
+      // 3. if success, close modal, and update user information.
+      if (response.data.success) {
+        setUser({
+          username: response.data.data.username,
+          email: response.data.data.email,
+        })
+        handleClose();
+        setStatus({
+          severity: 'success',
+          msg: response.data.msg,
+        });
+      }
+      // 4. if fail, show error message, and reset text fields value
+    }
+    catch (e) {
+      setUsernameOrEmail('');
+      setPassword('');
+
+      if(e instanceof AxiosError && e.response)
+      {
+        return setStatus({
+          msg: e.response.data.error,
+          severity: 'error',
+        });
+      }
+
+      return setStatus({
+        msg: e.message,
+        severity: 'error',
+      });
+    }
   };
   return (
     <Box

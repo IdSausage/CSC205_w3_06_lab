@@ -3,8 +3,9 @@ import { Dialog, DialogActions, DialogContent, DialogTitle, Button, TextField } 
 import GlobalContext from '../../../share/Context/GlobalContext';
 import { AxiosError } from 'axios';
 import Cookies from 'js-cookie';
+import Axios from '../../../share/AxiosInstance';
 
-const NoteEditModal = ({ note = {}, open = false, handleClose = () => {}, setNotes = () => {} }) => {
+const NoteEditModal = ({ note = {}, open = false, handleClose = () => { }, setNotes = () => { } }) => {
   const [newNote, setNewNote] = useState(note);
   const [error, setError] = useState({});
   const { setStatus } = useContext(GlobalContext);
@@ -13,11 +14,55 @@ const NoteEditModal = ({ note = {}, open = false, handleClose = () => {}, setNot
     setNewNote(note);
   }, [note]);
 
+  const validateForm = () => {
+    let isValid = true;
+    if (!newNote.title) error.title = 'title is required';
+    if (!newNote.description) error.description = 'description is required';
+
+    setError(error);
+
+    if (Object.keys(error).length) return false;
+    return true;
+  }
+
   const submit = async () => {
     // TODO: Implement update note
     // 1. validate form
-    // 2. call API to update note
-    // 3. if successful, update note in state and close modal
+    if (!validateForm()) return;
+    try {
+      // 2. call API to update note
+      const userToken = Cookies.get('UserToken');
+      const response = await Axios.patch('/note', {
+        title: newNote.title,
+        description: newNote.description,
+        noteId: newNote.id,
+      }, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      })
+      // 3. if successful, update note in state and close modal
+      if (response.data.success) {
+        setStatus({
+          severity: 'success',
+          msg: 'Update note successfully',
+        })
+        setNotes((prev) => prev.map((n) => (n.id === newNote.id ? response.data.data : n)));
+        resetAndClose();
+      }
+    }
+    catch (error) {
+      if(error instanceof AxiosError && error.response)
+      {
+        return setStatus({
+          msg: error.response.data.error,
+          severity: 'error',
+        })
+      }
+
+      return setStatus({
+        msg: error.message,
+        severity: 'error',
+      })
+    }
     // 4. if update note failed, check if error is from calling API or not
   };
 
